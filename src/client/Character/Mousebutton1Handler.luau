@@ -8,11 +8,11 @@ Mousebutton1Handler.M1PressedValueObject = ValueObject.new(false)
 
 function Mousebutton1Handler:InputBegan()
     -- Rx
-    self.Value = true
+    Mousebutton1Handler.M1PressedValueObject.Value = true
 end
 
 function Mousebutton1Handler:InputEnded()
-    self.Value = false
+    Mousebutton1Handler.M1PressedValueObject.Value = false
 end
 
 return Mousebutton1Handler

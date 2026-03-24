@@ -1,6 +1,8 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StarterPlayer = game:GetService("StarterPlayer")
 local Workspace = game:GetService("Workspace")
+local Mousebutton1Handler = require(StarterPlayer.StarterCharacterScripts.Mousebutton1Handler)
 local CameraRecoiler = require(ReplicatedStorage.Nevermore.Custom.abilities.src.Client.utils.CameraRecoiler)
 local CooldownController = require(ReplicatedStorage.Nevermore.Custom.abilities.src.Server.Utils.CooldownController)
 local EffectTypes = require(ReplicatedStorage.Nevermore.Custom.abilities.src.Server.Utils.EffectTypes)
@@ -8,6 +10,7 @@ local castRays = require(ReplicatedStorage.Nevermore.Custom.abilities.src.Shared
 local drawRayResults = require(ReplicatedStorage.Nevermore.Custom.abilities.src.Shared.utils.drawRayResults)
 local getRayDirections = require(ReplicatedStorage.Nevermore.Custom.abilities.src.Shared.utils.getRayDirections)
 local weaponTypes = require(ReplicatedStorage.Nevermore.Custom.weapon.src.Server.types.weaponTypes)
+local Rx = require(ReplicatedStorage.Nevermore.Quenty.rx.Shared.Rx)
 
 export type AttackDistanceAbilityType = weaponTypes.AttackDistanceAbilityCLient
 export type construnctor = weaponTypes.BaseAbilityConstructor
@@ -37,6 +40,8 @@ function AttackDistanceAbility.new(config: construnctor)
 	self._recoilCooldownController = CooldownController.new(self.character, self._serviceBag)
 	self._recoilResetConnection = nil
 
+	self:_setupContinuousFireObservable()
+
 	return self :: AttackDistanceAbilityType
 end
 
@@ -52,6 +57,21 @@ function AttackDistanceAbility._resolveWeaponGrip(
 	assert(typeof(fn) == "function", "Invalid weapon grip method")
 
 	return fn(model)
+end
+
+function AttackDistanceAbility._setupContinuousFireObservable(self: AttackDistanceAbilityType)
+	local cooldown = self._cooldown or 0.1 -- Default cooldown if not set
+
+	self._maid:GiveTask(Rx.combineLatest({
+		pressed = Mousebutton1Handler.M1PressedValueObject:Observe(),
+	})
+		:Pipe({
+			Rx.throttleTime(cooldown, { leading = true, trailing = true }),
+		})
+		:Subscribe(function()
+			print("autoexecute")
+			self:Execute()
+		end))
 end
 
 function AttackDistanceAbility._isContinuousShot(self: AttackDistanceAbilityType, timestamp: number)

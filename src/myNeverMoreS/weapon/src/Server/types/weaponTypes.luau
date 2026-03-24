@@ -302,25 +302,7 @@ export type AttackDistanceAbilityCLient =  BaseAbility & {
 
 	-- Override
 	Execute: (
-		self: AttackDistanceAbility,
-		params: {
-			preAnimFx: ((self: AttackDistanceAbility) -> ())?,
-			get_anim_name: ((self: AttackDistanceAbility) -> string)?,
-
-			createHitboxes: (
-				self: AttackDistanceAbility
-			) -> {
-				hitboxes: any,
-				hit_effect_data: HitEffectContract,
-				vfxs: { VFX }?,
-			},
-
-			delay_cb: ((self: AttackDistanceAbility, vfxs: { VFX }?) -> () -> ())?,
-			delay_cb_number: number?,
-
-			custom_anim: ((self: AttackDistanceAbility) -> ())?,
-		}
-	) -> (),
+		self: AttackDistanceAbility) -> (),
 	UnsetAttributes: (self: AttackDistanceAbility) -> (),
 
 	_shot: (self: AttackDistanceAbility) -> (),

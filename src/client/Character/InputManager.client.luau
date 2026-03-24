@@ -1,8 +1,7 @@
 local UserInputSer: UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
--- local Mousebutton1Handler = require(script.Parent.Mousebutton1Handler)
+local Mousebutton1Handler = require(script.Parent.Mousebutton1Handler)
 local weaponTypes = require(ReplicatedStorage.Nevermore.Custom.weapon.src.Shared.types.weaponTypes)
 
 -- constants
@@ -100,17 +99,16 @@ UserInputSer.InputBegan:Connect(function(input: InputObject, IsTyping)
 		end
 		local command = input.KeyCode
 		if input.UserInputType == Enum.UserInputType.MouseButton1 then
-			-- Mousebutton1Handler.InputBegan()
+			Mousebutton1Handler.InputBegan()
 			command = input.UserInputType
 		end
 		weapon:Execute(command)
 	end
 end)
 UserInputSer.InputEnded:Connect(function(input, isTyping)
-	print("IsTyping", isTyping)
-	print("input", input)
+	
 	if input.UserInputType == Enum.UserInputType.MouseButton1 then 
-		-- Mousebutton1Handler.InputEnded()
+		Mousebutton1Handler.InputEnded()
 		
 	end
 	-- Match how InputBegan resolves bindings: KeyCode first, then UserInputType (for mouse/touch)
