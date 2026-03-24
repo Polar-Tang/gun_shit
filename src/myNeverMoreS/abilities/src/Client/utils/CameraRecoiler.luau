@@ -1,0 +1,34 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local Constants = require(ReplicatedStorage.Nevermore.Custom.abilities.src.Shared.Constanst)
+
+
+local camera = Workspace.CurrentCamera
+
+local recoil = Vector2.new()
+local zoom = 0
+
+local function lerp(a: number, b: number, t: number): number
+	return a + (b - a) * t
+end
+
+local function onRenderStepped(deltaTime: number)
+	camera.CFrame *= CFrame.Angles(recoil.Y * deltaTime, recoil.X * deltaTime, 0)
+	camera.FieldOfView = Constants.RECOIL_DEFAULT_FOV + zoom
+	recoil = recoil:Lerp(Vector2.zero, math.min(deltaTime * Constants.RECOIL_STOP_SPEED, 1))
+	zoom = lerp(zoom, 0, math.min(deltaTime * Constants.RECOIL_ZOOM_RETURN_SPEED, 1))
+end
+
+local CameraRecoiler = {}
+
+function CameraRecoiler.recoil(recoilAmount: Vector2)
+	zoom = 1
+	print("recoil ", recoil)
+	recoil += recoilAmount
+end
+
+-- apply recoil after aim assist
+RunService:BindToRenderStep(Constants.RECOIL_BIND_NAME, Enum.RenderPriority.Camera.Value + 2, onRenderStepped)
+
+return CameraRecoiler

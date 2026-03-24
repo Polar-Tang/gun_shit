@@ -1,0 +1,243 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local EffectTypes = require(ReplicatedStorage.Nevermore.Custom.abilities.src.Server.Utils.EffectTypes)
+--== CLASSES ==--
+
+-- NEW ARGS
+export type BaseAbilityConstructor = {
+	keyCode: EnumItem?,
+	key: { Name: string }?,
+	animNames: { string }?,
+	life_time: number?, -- This may be useful for not resolving the promise until the time us fulfil, meanwhile should live the hitbox effect (hitbox already live that long in the client, but the server resolve in the first target)
+	type: string,
+	cooldown: number?,
+	attackType: string?,
+	special_attack: boolean?,
+}
+
+export type WeaponContext = any
+
+export type BaseAbility = {
+	-- Core state
+	character: Model,
+	humanoid: Humanoid,
+	hrp: BasePart,
+
+	type: "Attack" | "Defense" | "Others" | string,
+	player: Player,
+
+	life_time: number?,
+	walk_speed_blocking: number,
+
+	-- Cooldown
+	CD: boolean,
+	_cooldown: number,
+	_comboController: any,
+
+	-- Services / controllers
+	_serviceBag: any,
+	RagdollService: any,
+	_weaponHandler: any,
+	_animHandler: any,
+
+	-- Animation data
+	animNames: { string },
+	_animName: string,
+	_endFx: ((ability: BaseAbility) -> ())?,
+
+	-- Sound
+	sound_folder: Folder,
+
+	-- Internals
+	_lastAttackID: number,
+	_maid: any,
+
+	-- ===== Methods =====
+	--[[
+        new: (constructor: BaseAbilityConstructor) -> BaseAbility
+        
+        Creates a new BaseAbility instance from the provided constructor.
+        
+        @param constructor BaseAbilityConstructor -- The constructor configuration for the ability
+        @return BaseAbility -- The newly created ability instance
+    ]]
+	new: (constructor: BaseAbilityConstructor) -> { self: BaseAbility },
+	Init: (self: BaseAbility, params: { endFx: ((ability: BaseAbility) -> ())? }) -> (),
+
+	
+	PlaySound: (self: BaseAbility, nameSound: string, lifeTime: number?) -> (),
+
+	resetAtt: (self: BaseAbility) -> (),
+	StartCD: (self: BaseAbility) -> (),
+	InitCDInst: (self: BaseAbility) -> (),
+
+	_countAttack: (self: BaseAbility) -> (),
+	_GenerateAttackID: (self: BaseAbility) -> string,
+
+	GetCD: (self: BaseAbility) -> boolean,
+
+	-- Must be overridden
+	Execute: (self: BaseAbility, char: Model) -> (),
+
+	Destroy: (self: BaseAbility) -> (),
+}
+
+-- || HITBOX TYPE || --
+
+export type DotProductFilter = {
+	dotProduct: number,
+	referenceVector: Vector3,
+	sourcePosition: Vector3,
+}
+
+export type HixboxDataConfig = {
+	Time: number,
+	Size: Vector3,
+	CFrame: Vector3,
+	Shape: "Box" | "Ball" | "TimedBox",
+	HitMode: "Strong" | "Weak",
+	strikes_hit: boolean?,
+}
+
+export type HitboxConfig = {
+	attackId: string,
+	Weapon: BasePart,
+	referenceVector: Vector3,
+	sourcePosition: Vector3,
+	Attacker: Model,
+} & HixboxDataConfig
+
+export type VFX = EffectTypes.VFX
+export type HitEffectContract = EffectTypes.HitEffectContract
+
+export type hitDetection = {
+	attackID: string,
+	Attacker: Model,
+	hitboxes: { HitboxConfig },
+	VFXS: { VFX }?,
+	lifetime: number?,
+	delay_cb: ((any) -> any)?,
+	delay_cb_number: number?,
+}
+
+export type AttackBaseAbilityConstructor = BaseAbilityConstructor & {
+	attackType: string,
+}
+
+export type AttackBaseAbility = BaseAbility & {
+	-- ===== Attack-specific state =====
+	attackType: string,
+	player: Player,
+	special_attack: boolean?,
+
+	attackId: string,
+
+	-- ===== Overridden / new methods =====
+	new: (constructor: AttackBaseAbilityConstructor) -> { self: AttackBaseAbility },
+
+	_resolveWeaponGrip: (
+		self: AttackBaseAbility,
+		strategyName: string,
+		methodName: string,
+		model: Model
+	) -> BasePart,
+
+	_createScopedPromise: (self: AttackBaseAbility, detectionInfo: hitDetection) -> (any, any), -- Promise<any?>, Maid
+
+	SetAttributes: (self: AttackBaseAbility) -> (),
+
+	PromiseHit: (
+		self: AttackBaseAbility,
+		hitDetection: hitDetection,
+		hitEffect: HitEffectContract,
+		params: {
+			after_hit: ((self: AttackBaseAbility, vfxs: { VFX }?) -> ())?,
+			delay_cb_number: number?,
+		}?
+	) -> (),
+
+	-- Override
+	Execute: (
+		self: AttackBaseAbility,
+		params: {
+			preAnimFx: ((self: AttackBaseAbility) -> ())?,
+			get_anim_name: ((self: AttackBaseAbility) -> string)?,
+
+			createHitboxes: (
+				self: AttackBaseAbility
+			) -> {
+				hitboxes: any,
+				hit_effect_data: HitEffectContract,
+				vfxs: { VFX }?,
+			},
+
+			delay_cb: ((self: AttackBaseAbility, vfxs: { VFX }?) -> () -> ())?,
+			delay_cb_number: number?,
+
+			custom_anim: ((self: AttackBaseAbility) -> ())?,
+		}
+	) -> (),
+	UnsetAttributes: (self: AttackBaseAbility) -> (),
+}
+
+--?? DEFENSE ABILITY ??||
+
+export type DefenseAbilityConstructor = BaseAbilityConstructor & {
+	-- Optional priority used by weapon defense chains
+	priority: number?,
+}
+
+export type DefenseAbility = BaseAbility & {
+	-- ===== State =====
+	isActive: boolean,
+	priority: number?,
+	new: (constructor: DefenseAbilityConstructor) -> { self: DefenseAbility },
+
+	-- ===== Signals / Observables =====
+	_activeSignal: any, -- Signal<boolean>
+
+	-- Internal execution handler
+	_process: any,
+
+	-- ===== Observables =====
+
+	-- Emits boolean values when defense active state changes
+	ObserveActive: (self: DefenseAbility) -> any, -- Observable<boolean>
+
+	-- Emits the DefenseAbility instance while active
+	ObserveDefense: (self: DefenseAbility) -> any, -- Observable<DefenseAbility>
+
+	-- ===== Lifecycle =====
+
+	Activate: (self: DefenseAbility) -> (),
+	Deactivate: (self: DefenseAbility) -> (),
+
+	Stop: (self: DefenseAbility) -> (),
+	Destroy: (self: DefenseAbility) -> (),
+
+	-- ===== Core behavior =====
+
+	SetAttributes: (self: DefenseAbility) -> (),
+
+	Process: (self: DefenseAbility, context: any) -> (),
+
+	-- Guard break logic
+	_GuardBreak: (self: DefenseAbility) -> boolean?,
+
+	-- Internal deactivation
+	_deactivate: (self: DefenseAbility) -> (),
+
+	-- ===== Override =====
+
+	Execute: (
+		self: DefenseAbility,
+		params: {
+			get_anim_name: (() -> string)?,
+
+			-- Called during Execute, returns the defense processor
+			_execute: (self: DefenseAbility) -> any,
+		}
+	) -> (),
+	_additiona_deactivate: (self: DefenseAbility) -> (),
+}
+
+return {}
