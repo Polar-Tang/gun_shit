@@ -12,6 +12,7 @@ Weapon.__index = Weapon
 local Strategies = {
 	fist = require("FistClient"),
 	["gun"] = require("GunClient"),
+	["ak-47"] = require("Ak_47Client"),
 }
 
 function Weapon.new(char: Model, serviceBag)

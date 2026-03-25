@@ -1,7 +1,6 @@
 local UserInputSer: UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Mousebutton1Handler = require(script.Parent.Mousebutton1Handler)
 local weaponTypes = require(ReplicatedStorage.Nevermore.Custom.weapon.src.Shared.types.weaponTypes)
 
 -- constants
@@ -19,54 +18,39 @@ local function GCD(secs: number)
 	end)
 end
 
-
 local InputManager = {}
 
 InputManager.Bindings = {
-	[Enum.KeyCode.Q] = require(ReplicatedStorage.Nevermore.Custom.weapon.src.Client.Abilities.Slide.Slide)
+	[Enum.KeyCode.Q] = require(ReplicatedStorage.Nevermore.Custom.weapon.src.Client.Abilities.Slide.Slide),
 }
-
-
 
 local player = Players.LocalPlayer
 local BinderProviderInitialized
 local WeaponBinderStarted
-local weapon : weaponTypes.WeaponContext
+local weapon: weaponTypes.WeaponContext
 -- Init
 do
-	inCombat = Instance.new("BoolValue")
-	inCombat.Name = "PlayerInCombat"
-	inCombat.Value = false
-	inCombat.Parent = plr
-
-	inCombat = Instance.new("BoolValue")
-	inCombat.Name = "PlayerInUltimate"
-	inCombat.Value = false
-	inCombat.Parent = plr
+	m1Hold = Instance.new("BoolValue")
+	m1Hold.Name = "m1Hold"
+	m1Hold.Value = false
+	m1Hold.Parent = plr
 end
 
 UserInputSer.InputBegan:Connect(function(input: InputObject, IsTyping)
-	
-
 	if IsTyping then
 		return
 	end
-	
-
 
 	-- Prefer lookup by KeyCode, but fall back to UserInputType for mouse/touch events
 	-- Unelegant way for knowing whether the player is kept
 	-- if not (input.KeyCode == Enum.KeyCode.W or input.KeyCode == Enum.KeyCode.D or input.KeyCode == Enum.KeyCode.S or or input.KeyCode == Enum.KeyCode.A) then
-	-- 	_G.hasPressedM1 = true	
+	-- 	_G.hasPressedM1 = true
 	-- end
 	-- For the moment let's imagine that all the damn characters same the daches execute
 	--/src/client/Character/InputManager.client.luau
 	if UserInputSer:IsKeyDown(Enum.KeyCode.Q) then
 		local command = InputManager.Bindings[Enum.KeyCode.Q]
-		if
-			input.KeyCode == Enum.KeyCode.W
-			or input.KeyCode == Enum.KeyCode.D
-		then
+		if input.KeyCode == Enum.KeyCode.W or input.KeyCode == Enum.KeyCode.D then
 			if not command.Check() then
 				return
 			end
@@ -99,17 +83,15 @@ UserInputSer.InputBegan:Connect(function(input: InputObject, IsTyping)
 		end
 		local command = input.KeyCode
 		if input.UserInputType == Enum.UserInputType.MouseButton1 then
-			Mousebutton1Handler.InputBegan()
+			m1Hold.Value = true
 			command = input.UserInputType
 		end
 		weapon:Execute(command)
 	end
 end)
 UserInputSer.InputEnded:Connect(function(input, isTyping)
-	
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then 
-		Mousebutton1Handler.InputEnded()
-		
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		m1Hold.Value = false
 	end
 	-- Match how InputBegan resolves bindings: KeyCode first, then UserInputType (for mouse/touch)
 

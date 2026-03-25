@@ -59,7 +59,6 @@ end
 -- look if the part is at least three times nested, if its more than that fuck up
 function HitPartInfo.init(self: HitPartInfo)
 	local lastParent
-	print("self.inst ", self.inst)
 	if isR6Limb(self.inst) then
 		self.limb = self.inst
 	end

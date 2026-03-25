@@ -392,11 +392,11 @@ do
 		magazineSize = 10,
 		bulletVelocity = 1000,
 
-		range = 1000,
+		range = 400,
 		rateOfFire = 600,
 		rayRadius = 0.4,
 		raysPerShot = 1,
-		maxDistance = 600,
+		maxDistance = 400,
 
 		recoilMax = Vector2.new(5, 20),
 		recoilMin = Vector2.new(0, 15),
@@ -415,7 +415,7 @@ do
 		animNames = { "Swing1", "Swing2", "Swing3", "Swing4" },
 		type = "Range",
 		attackType = "ST",
-		cooldown = 0.5, -- A basic gun can shot 
+		cooldown = 0.4, -- A basic gun can shot
 		weapon_stats = table.clone(ak_stats),
 	}
 	ak_47.weapon_stats = table.clone(ak_stats)
@@ -426,11 +426,57 @@ do
 	ak_47.skills = {
 		["SDash"] = Slide,
 		["WDash"] = WDash,
-
 	}
 	-- todo finnish this fist with an m1
 
 	info["gun"] = ak_47
+end
+
+do
+	local ak_47 = table.clone(info["gun"])
+	ak_47.weapon_stats = {
+		_ammo = 30,
+		_reloading = false,
+
+		aimAssistCenteringStrength = 0,
+		aimAssistFov = 20,
+		aimAssistFrictionStrength = 0.5,
+		aimAssistRange = 100,
+		aimAssistTrackingStrength = 0.5,
+
+		damage = 10,
+		fireMode = "Auto",
+		magazineSize = 30,
+		range = 1000,
+		rateOfFire = 600,
+		maxDistance = 600,
+
+		rayRadius = 0.4,
+		raysPerShot = 1,
+
+		recoilMax = Vector2.new(2, 7),
+		recoilMin = Vector2.new(-2, 5),
+
+		reloadTime = 1.5,
+		spread = 2,
+		unanchoredImpulseForce = 2,
+		viewModel = "Auto Blaster",
+	}
+
+	local shot_m1 = table.clone(m1)
+	shot_m1.config = {
+		life_time = 1.4,
+		keyCode = Enum.UserInputType.MouseButton1,
+		animNames = { "Swing1", "Swing2", "Swing3", "Swing4" },
+		type = "Range",
+		attackType = "ST",
+		cooldown = 0.1, -- A basic gun can shot
+		weapon_stats = table.clone(ak_47.weapon_stats),
+	}
+	ak_47.attacks = {
+		[Enum.UserInputType.MouseButton1.Name] = shot_m1,
+	}
+	info["ak-47"] = ak_47
 end
 
 module.info = Table.errorOnNilIndex(info)

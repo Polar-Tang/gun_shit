@@ -3,7 +3,6 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local Constants = require(ReplicatedStorage.Nevermore.Custom.abilities.src.Shared.Constanst)
 
-
 local camera = Workspace.CurrentCamera
 
 local recoil = Vector2.new()
@@ -24,7 +23,6 @@ local CameraRecoiler = {}
 
 function CameraRecoiler.recoil(recoilAmount: Vector2)
 	zoom = 1
-	print("recoil ", recoil)
 	recoil += recoilAmount
 end
 

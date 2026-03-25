@@ -1,12 +1,11 @@
 local Attkcs = {}
 
 local anim_names = {
-	
+
 	["FrontDash"] = "rbxassetid://132739372863099",
-	["Kafka -BackDash"] = "rbxassetid://85575014339192",
+	-- ["Kafka -BackDash"] = "rbxassetid://85575014339192",
 	["DashLeft"] = "rbxassetid://79328523085486",
 	["DashRight"] = "rbxassetid://92616275644680",
-	
 }
 
 export type AttackGroup = {
@@ -61,7 +60,7 @@ Attkcs["gun"] = {
 	["DDash"] = anim_names["DashRight"],
 	["SDash"] = anim_names["Kafka -BackDash"],
 	["WDash"] = anim_names["FrontDash"],
-
 }
+Attkcs["ak-47"] = table.clone(Attkcs["gun"])
 
 return Attkcs :: Attkcs

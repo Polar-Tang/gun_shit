@@ -1,8 +1,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local StarterPlayer = game:GetService("StarterPlayer")
 local Workspace = game:GetService("Workspace")
-local Mousebutton1Handler = require(StarterPlayer.StarterCharacterScripts.Mousebutton1Handler)
+
 local CameraRecoiler = require(ReplicatedStorage.Nevermore.Custom.abilities.src.Client.utils.CameraRecoiler)
 local CooldownController = require(ReplicatedStorage.Nevermore.Custom.abilities.src.Server.Utils.CooldownController)
 local EffectTypes = require(ReplicatedStorage.Nevermore.Custom.abilities.src.Server.Utils.EffectTypes)
@@ -10,7 +9,6 @@ local castRays = require(ReplicatedStorage.Nevermore.Custom.abilities.src.Shared
 local drawRayResults = require(ReplicatedStorage.Nevermore.Custom.abilities.src.Shared.utils.drawRayResults)
 local getRayDirections = require(ReplicatedStorage.Nevermore.Custom.abilities.src.Shared.utils.getRayDirections)
 local weaponTypes = require(ReplicatedStorage.Nevermore.Custom.weapon.src.Server.types.weaponTypes)
-local Rx = require(ReplicatedStorage.Nevermore.Quenty.rx.Shared.Rx)
 
 export type AttackDistanceAbilityType = weaponTypes.AttackDistanceAbilityCLient
 export type construnctor = weaponTypes.BaseAbilityConstructor
@@ -22,6 +20,12 @@ local require = require(script.Parent.loader).load(script)
 local BaseAbility = require("BaseAbility")
 
 local CombatConfig = require("CombatConfig")
+
+local function getOrientationDelta(baseCFrame, currentCFrame)
+	local delta = baseCFrame:ToObjectSpace(currentCFrame)
+	local yaw, pitch = delta:ToOrientation()
+	return Vector2.new(pitch, yaw)
+end
 
 local AttackDistanceAbility = setmetatable({}, BaseAbility)
 AttackDistanceAbility.__index = AttackDistanceAbility
@@ -36,7 +40,7 @@ function AttackDistanceAbility.new(config: construnctor)
 
 	self._lastShotTimestamp = 0
 	self._recoilRestoreCFrame = nil
-	self._recoilTimeoutThreshold = 0.1
+	self._recoilTimeoutThreshold = 0.01
 	self._recoilCooldownController = CooldownController.new(self.character, self._serviceBag)
 	self._recoilResetConnection = nil
 
@@ -60,18 +64,29 @@ function AttackDistanceAbility._resolveWeaponGrip(
 end
 
 function AttackDistanceAbility._setupContinuousFireObservable(self: AttackDistanceAbilityType)
-	local cooldown = self._cooldown or 0.1 -- Default cooldown if not set
+	local bool: BoolValue = Players.LocalPlayer:FindFirstChild("m1Hold")
 
-	self._maid:GiveTask(Rx.combineLatest({
-		pressed = Mousebutton1Handler.M1PressedValueObject:Observe(),
-	})
-		:Pipe({
-			Rx.throttleTime(cooldown, { leading = true, trailing = true }),
-		})
-		:Subscribe(function()
-			print("autoexecute")
-			self:Execute()
-		end))
+	local m1Con: RBXScriptConnection
+	m1Con = bool.Changed:Connect(function()
+		if not bool.Value then
+			return
+		end
+
+		local thread
+		thread = function()
+			task.delay(self._cooldown, function()
+				-- bool val may change while the task is schedule
+				if not bool.Value then
+					return
+				end
+				self:Execute()
+				thread()
+			end)
+		end
+
+		thread()
+	end)
+	self._maid:GiveTask(m1Con)
 end
 
 function AttackDistanceAbility._isContinuousShot(self: AttackDistanceAbilityType, timestamp: number)
@@ -118,6 +133,7 @@ function AttackDistanceAbility._scheduleRecoilReset(self: AttackDistanceAbilityT
 			self._recoilResetConnection = c.Done:Connect(function()
 				self:_restoreRecoil()
 			end)
+			-- self._maid:GiveTask(self._recoilCooldownController)
 		end)
 	else
 		self._recoilCooldownController:Extend(duration)
@@ -161,6 +177,29 @@ function AttackDistanceAbility._shot(self: AttackDistanceAbilityType)
 
 	local selfAny = self :: any
 	selfAny:recoil()
+
+	-- Track if player moved camera during recoil; update restore point accordingly
+	do
+		local camera = Workspace.CurrentCamera
+		if camera and self._recoilRestoreCFrame then
+			local saved = self._recoilRestoreCFrame
+			local current = camera.CFrame
+			local orientationDelta = getOrientationDelta(saved, current)
+			local deltaPitch = math.abs(orientationDelta.X)
+			local deltaYaw = math.abs(orientationDelta.Y)
+
+			local recoils = self.weapon_stats
+			local maxX = math.max(math.abs(recoils.recoilMin.X), math.abs(recoils.recoilMax.X))
+			local maxY = math.max(math.abs(recoils.recoilMin.Y), math.abs(recoils.recoilMax.Y))
+			local maxRecoilAngleRad = math.rad(math.max(maxX, maxY))
+
+			local playerRotatedCamera = deltaPitch > maxRecoilAngleRad or deltaYaw > maxRecoilAngleRad
+			if playerRotatedCamera then
+				-- player moved the camera beyond recoil, remember this new position as restore point
+				self._recoilRestoreCFrame = current
+			end
+		end
+	end
 
 	self.ammo -= 1
 
@@ -227,24 +266,18 @@ function AttackDistanceAbility.Execute(self: AttackDistanceAbilityType, params)
 	end
 	-- start attack
 	self:StartCD()
-	
-	self:_countAttack()
-
-	self.attackId = self:_GenerateAttackID()
 
 	local preAnimFx = (params and params.preAnimFx) or self.preAnimFx
 	if preAnimFx then
 		preAnimFx(self, frontenShit)
 	end
 
-	local animHandler = self._animHandler
-	local getAnimName = (params and params.get_anim_name) or self.get_anim_name
-	local animName = (getAnimName and getAnimName(self)) or self._animName
-
-	animHandler:LoadAnimation(true, animName)
+	-- local animHandler = self._animHandler
+	-- local getAnimName = (params and params.get_anim_name) or self.get_anim_name
+	-- local animName = (getAnimName and getAnimName(self)) or self._animName
 
 	-- local hit_effect_data = self.hit_effect_data -- remember to use this as an attribute
-	
+
 	self:_shot()
 
 	local postAnim = (params and params.post_anim) or self.post_anim

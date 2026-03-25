@@ -45,6 +45,7 @@ function BaseAbility.new(config: weaponTypes.BaseAbilityConstructor)
 	self.animNames = config.animNames
 	self._animName = config.animNames[1]
 	self._endFx = config.endFx
+	print("config.cooldown ", config.cooldown)
 	self._cooldown = config.cooldown
 
 	self._maid = Maid.new()

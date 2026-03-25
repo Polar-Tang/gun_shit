@@ -1,5 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local EffectTypes = require(ReplicatedStorage.Nevermore.Custom.abilities.src.Server.Utils.EffectTypes)
+local Maid = require(ReplicatedStorage.Nevermore.Quenty.maid.Shared.Maid)
 --== CLASSES ==--
 export type weapon_stats = {
 	_ammo: number,
@@ -15,7 +16,7 @@ export type weapon_stats = {
 	fireMode: string,
 	magazineSize: number,
 	maxDistance: number,
-	
+
 	range: number,
 	bulletVelocity: number,
 	rateOfFire: number,
@@ -83,7 +84,7 @@ export type BaseAbility = {
 
 	-- Internals
 	_lastAttackID: number,
-	_maid: any,
+	_maid: Maid.Maid,
 
 	-- ===== Methods =====
 	--[[
@@ -269,7 +270,7 @@ export type AttackDistanceAbility = BaseAbility & {
 	_getBinder: (self: AttackDistanceAbility) -> (),
 }
 
-export type AttackDistanceAbilityCLient =  BaseAbility & {
+export type AttackDistanceAbilityCLient = BaseAbility & {
 	-- ===== Attack-specific state =====
 	attackType: string,
 	player: Player,
@@ -301,14 +302,12 @@ export type AttackDistanceAbilityCLient =  BaseAbility & {
 	_restoreRecoil: (self: AttackDistanceAbility) -> (),
 
 	-- Override
-	Execute: (
-		self: AttackDistanceAbility) -> (),
+	Execute: (self: AttackDistanceAbility) -> (),
 	UnsetAttributes: (self: AttackDistanceAbility) -> (),
 
 	_shot: (self: AttackDistanceAbility) -> (),
 	_getBinder: (self: AttackDistanceAbility) -> (),
 	recoil: (self: AttackDistanceAbility) -> (),
-
 }
 
 --?? DEFENSE ABILITY ??||

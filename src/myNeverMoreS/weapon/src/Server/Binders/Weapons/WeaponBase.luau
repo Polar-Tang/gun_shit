@@ -96,13 +96,11 @@ end
 function WeaponBase:createAbilitiesFromKey(key)
 	-- HERE
 	local fucking_data = self[key]
-	
 
 	local attackData = assert(fucking_data, "no key registered")
-	print("self._initialized  ", self._initialized )
+	print("self._initialized  ", self._initialized)
 	return self:_createAbilities(attackData)
 end
-
 
 function WeaponBase:_createAbilities(attacks)
 	-- attacks of type Attack and maybe Movement in the future
@@ -114,7 +112,7 @@ function WeaponBase:_createAbilities(attacks)
 		config._serviceBag = self._serviceBag
 
 		config.tool = self.tool
-
+		print("config ", config)
 		local skill
 		if config.type == "Defense" then
 			skill = DefenseBaseAbility.new(config)
@@ -144,7 +142,6 @@ function WeaponBase:_createAbilities(attacks)
 		skill:Init(externalMethods)
 		self._maid:GiveTask(skill)
 		newAttacks[key] = skill
-
 	end
 	return newAttacks
 end
