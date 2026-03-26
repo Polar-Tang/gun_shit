@@ -1,5 +1,6 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
@@ -46,6 +47,7 @@ function AttackDistanceAbility.new(config: construnctor)
 			self._playerMoved = true
 			self._lastPlayerCFrame = Workspace.CurrentCamera.CFrame
 		end
+		self._currentTween:Stop()
 	end)
 	self._maid:GiveTask(self._inputConnection)
 
@@ -103,9 +105,20 @@ end
 
 function AttackDistanceAbility._restoreRecoil(self: AttackDistanceAbilityType)
 	print("asd")
+	-- really need to find out a way for coexisting the tween cameras and the camera override
 	local camera = Workspace.CurrentCamera
 	if camera and self._recoilRestoreCFrame then
-		camera.CFrame = self._recoilRestoreCFrame
+		local tweenInfo = TweenInfo.new(
+			0.2, -- duration (tweak this)
+			Enum.EasingStyle.Linear,
+			Enum.EasingDirection.Out
+		)
+
+		local tween = TweenService:Create(camera, tweenInfo, {
+			CFrame = self._recoilRestoreCFrame,
+		})
+		self._currentTween = tween
+		tween:Play()
 	end
 
 	self._recoilRestoreCFrame = nil

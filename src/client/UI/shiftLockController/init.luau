@@ -42,6 +42,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Maid = require(ReplicatedStorage.Nevermore.Quenty.maid.Shared.Maid)
 local Spring = require(ReplicatedStorage.Nevermore.Quenty.spring.Shared.Spring)
 
+local _ = require(script.handHeadCamera)
 --// Instances
 local LocalPlayer = Players.LocalPlayer
 
@@ -210,18 +211,17 @@ function SmoothShiftLock:ToggleShiftLock(enable: boolean)
 			--// Rotate character
 			if ENABLED and not self.Character:GetAttribute("Stunned") then
 				if not self.Humanoid.Sit and config.CHARACTER_SMOOTH_ROTATION then
-					local x, y, z = self.Camera.CFrame:ToOrientation()
+					local _x, y, _z = self.Camera.CFrame:ToOrientation()
 					self.RootPart.CFrame = self.RootPart.CFrame:Lerp(
 						CFrame.new(self.RootPart.Position) * CFrame.Angles(0, y, 0),
 						delta * 5 * config.CHARACTER_ROTATION_SPEED
 					)
 				elseif not self.Humanoid.Sit then
-					local x, y, z = self.Camera.CFrame:ToOrientation()
+					local _x, y, _z = self.Camera.CFrame:ToOrientation()
 					self.RootPart.CFrame = CFrame.new(self.RootPart.Position) * CFrame.Angles(0, y, 0)
 				end
 
 				--// Apply over-the-shoulder offset
-				--// Offset is in camera space so it stays consistent regardless of where the camera is looking
 				local offsetInWorld = self.Camera.CFrame:VectorToWorldSpace(config.CAMERA_OFFSET)
 				self.Camera.CFrame = self.Camera.CFrame + offsetInWorld
 			end
