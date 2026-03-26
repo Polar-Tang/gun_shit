@@ -22,10 +22,34 @@ function CooldownController.new(char: Model, serviceBag)
 
 	self._serviceBag = serviceBag
 	self.char = char
-
 	local coolDown = serviceBag:GetService(Cooldown)
 	self._cooldown = coolDown
 	return self
+end
+
+-- ...existing code...
+function CooldownController:ResetTo(length: number)
+	local ourBinder = self:getCD()
+	if not ourBinder then
+		warn("No cooldown found")
+		return
+	end
+
+	local cooldown_model = ourBinder:GetCooldownModel()
+	if not cooldown_model then
+		warn("No cooldown model found")
+		return
+	end
+
+	-- state.length + state.startTime - now (node_modules/@quenty/cooldown/src/Shared/Model/CooldownModel.lua) waitTIme is always length
+	local now = os.clock() + length -- don't know why os.clock return incosistent values
+	cooldown_model:SetClock(function()
+		return now
+	end)
+	-- align start+length so remaining becomes remainTime from now
+	cooldown_model:SetStartTime(now)
+
+	cooldown_model:SetLength(length)
 end
 
 function CooldownController:Extend(duration)
@@ -47,6 +71,20 @@ function CooldownController:Extend(duration)
 
 	coldown_model:SetStartTime(startTime)
 	coldown_model:SetLength(newEndTime - startTime)
+end
+
+function CooldownController:SetLength(length: number)
+	local ourBinder = self:getCD()
+	if not ourBinder then
+		warn("No cooldown found")
+		return
+	end
+	local coldown_model = ourBinder:GetCooldownModel()
+	if not ourBinder then
+		warn("No cooldown found")
+		return
+	end
+	coldown_model:SetLength(length)
 end
 
 function CooldownController:_createCD(cd: number?)

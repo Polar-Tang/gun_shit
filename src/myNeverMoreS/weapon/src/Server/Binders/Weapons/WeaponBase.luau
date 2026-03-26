@@ -98,7 +98,6 @@ function WeaponBase:createAbilitiesFromKey(key)
 	local fucking_data = self[key]
 
 	local attackData = assert(fucking_data, "no key registered")
-	print("self._initialized  ", self._initialized)
 	return self:_createAbilities(attackData)
 end
 
@@ -112,7 +111,6 @@ function WeaponBase:_createAbilities(attacks)
 		config._serviceBag = self._serviceBag
 
 		config.tool = self.tool
-		print("config ", config)
 		local skill
 		if config.type == "Defense" then
 			skill = DefenseBaseAbility.new(config)
@@ -123,7 +121,6 @@ function WeaponBase:_createAbilities(attacks)
 		elseif config.type == "Range" then
 			skill = RangeAttack.new(config)
 		else
-			print("unknown ability ", spec)
 			continue
 		end
 		local key = config.keyCode and config.keyCode.Name or config.key and config.key.Name

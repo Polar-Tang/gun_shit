@@ -1,10 +1,11 @@
 local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RangeAttack = require(ReplicatedStorage.Nevermore.Custom.abilities.src.Server.Abilities.RangeAttack)
 local EffectTypes = require(ReplicatedStorage.Nevermore.Custom.abilities.src.Server.Utils.EffectTypes)
 local roll_vfx = require(ReplicatedStorage.Nevermore.Custom.abilities.src.Server.Utils.roll_vfx)
 local Constanst = require(ReplicatedStorage.Nevermore.Custom.abilities.src.Shared.Constanst)
-local weaponTypes = require(ReplicatedStorage.Nevermore.Custom.weapon.src.Shared.types.weaponTypes)
 local Table = require(ReplicatedStorage.Nevermore.Quenty.table.Shared.Table)
+local weaponTypes = require(ReplicatedStorage.Nevermore.Custom.weapon.src.Server.types.weaponTypes)
 
 export type BaseAbility = weaponTypes.BaseAbility
 export type BaseAbilityConstructor = weaponTypes.BaseAbilityConstructor
@@ -473,6 +474,10 @@ do
 		cooldown = 0.1, -- A basic gun can shot
 		weapon_stats = table.clone(ak_47.weapon_stats),
 	}
+	-- Remove all shits about animation for the moment
+	shot_m1.endFx = nil
+	shot_m1.preAnimFx = nil
+
 	ak_47.attacks = {
 		[Enum.UserInputType.MouseButton1.Name] = shot_m1,
 	}

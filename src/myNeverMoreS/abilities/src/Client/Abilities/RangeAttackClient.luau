@@ -1,31 +1,23 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
 local CameraRecoiler = require(ReplicatedStorage.Nevermore.Custom.abilities.src.Client.utils.CameraRecoiler)
 local CooldownController = require(ReplicatedStorage.Nevermore.Custom.abilities.src.Server.Utils.CooldownController)
 local EffectTypes = require(ReplicatedStorage.Nevermore.Custom.abilities.src.Server.Utils.EffectTypes)
+local BaseAbility = require(ReplicatedStorage.Nevermore.Custom.abilities.src.Shared.Abilities.BaseAbility)
 local castRays = require(ReplicatedStorage.Nevermore.Custom.abilities.src.Shared.utils.castRays)
 local drawRayResults = require(ReplicatedStorage.Nevermore.Custom.abilities.src.Shared.utils.drawRayResults)
 local getRayDirections = require(ReplicatedStorage.Nevermore.Custom.abilities.src.Shared.utils.getRayDirections)
 local weaponTypes = require(ReplicatedStorage.Nevermore.Custom.weapon.src.Server.types.weaponTypes)
 
+local CombatConfig = require(ReplicatedStorage.Nevermore.Custom.weapon.src.Shared.CombatConfig)
+
 export type AttackDistanceAbilityType = weaponTypes.AttackDistanceAbilityCLient
 export type construnctor = weaponTypes.BaseAbilityConstructor
 export type hitDetection = weaponTypes.hitDetection
 export type HitEffectContract = EffectTypes.HitEffectContract
-
-local require = require(script.Parent.loader).load(script)
-
-local BaseAbility = require("BaseAbility")
-
-local CombatConfig = require("CombatConfig")
-
-local function getOrientationDelta(baseCFrame, currentCFrame)
-	local delta = baseCFrame:ToObjectSpace(currentCFrame)
-	local yaw, pitch = delta:ToOrientation()
-	return Vector2.new(pitch, yaw)
-end
 
 local AttackDistanceAbility = setmetatable({}, BaseAbility)
 AttackDistanceAbility.__index = AttackDistanceAbility
@@ -43,6 +35,19 @@ function AttackDistanceAbility.new(config: construnctor)
 	self._recoilTimeoutThreshold = 0.01
 	self._recoilCooldownController = CooldownController.new(self.character, self._serviceBag)
 	self._recoilResetConnection = nil
+
+	self.attackRow = 0
+
+	self._playerMoved = false
+	self._lastPlayerCFrame = nil
+
+	self._inputConnection = UserInputService.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement then
+			self._playerMoved = true
+			self._lastPlayerCFrame = Workspace.CurrentCamera.CFrame
+		end
+	end)
+	self._maid:GiveTask(self._inputConnection)
 
 	self:_setupContinuousFireObservable()
 
@@ -90,20 +95,20 @@ function AttackDistanceAbility._setupContinuousFireObservable(self: AttackDistan
 end
 
 function AttackDistanceAbility._isContinuousShot(self: AttackDistanceAbilityType, timestamp: number)
-	local last = self._lastShotTimestamp or 0
-	local threshold = self._recoilTimeoutThreshold or 0.1
-	local cooldown = self._cooldown or 0
+	local last = self._lastShotTimestamp
+	local threshold = 0.1
+	local cooldown = self._cooldown
 	return last > 0 and timestamp - last <= (cooldown + threshold)
 end
 
 function AttackDistanceAbility._restoreRecoil(self: AttackDistanceAbilityType)
+	print("asd")
 	local camera = Workspace.CurrentCamera
 	if camera and self._recoilRestoreCFrame then
 		camera.CFrame = self._recoilRestoreCFrame
 	end
 
 	self._recoilRestoreCFrame = nil
-	self._lastShotTimestamp = 0
 
 	if self._recoilResetConnection then
 		self._recoilResetConnection:Disconnect()
@@ -116,27 +121,32 @@ function AttackDistanceAbility._restoreRecoil(self: AttackDistanceAbilityType)
 	end
 end
 
-function AttackDistanceAbility._scheduleRecoilReset(self: AttackDistanceAbilityType)
-	local duration = (self._cooldown or 0) + (self._recoilTimeoutThreshold or 0.1)
-	local controller = self._recoilCooldownController:getCD()
-
-	if not controller then
-		self._recoilCooldownController:init(duration)
-		task.defer(function()
-			local c = self._recoilCooldownController:getCD()
-			if not c then
-				return
-			end
-			if self._recoilResetConnection then
-				self._recoilResetConnection:Disconnect()
-			end
-			self._recoilResetConnection = c.Done:Connect(function()
-				self:_restoreRecoil()
-			end)
-			-- self._maid:GiveTask(self._recoilCooldownController)
+function AttackDistanceAbility._createRecoilStrike(self: AttackDistanceAbilityType)
+	self._recoilCooldownController:init(self._cooldown + 0.15)
+	task.defer(function()
+		local c = self._recoilCooldownController:getCD()
+		if not c then
+			return
+		end
+		if self._recoilResetConnection then
+			self._recoilResetConnection:Disconnect()
+		end
+		self._recoilResetConnection = c.Done:Connect(function()
+			self:_restoreRecoil()
 		end)
+		-- self._maid:GiveTask(self._recoilCooldownController)
+	end)
+end
+
+function AttackDistanceAbility._scheduleRecoilReset(self: AttackDistanceAbilityType)
+	local controller = self._recoilCooldownController:getCD()
+	if not controller then
+		self:_createRecoilStrike()
 	else
-		self._recoilCooldownController:Extend(duration)
+		if self._cooldown == 3 then
+			print()
+		end
+		self._recoilCooldownController:ResetTo(self._cooldown + 0.1)
 	end
 end
 
@@ -169,36 +179,22 @@ function AttackDistanceAbility._shot(self: AttackDistanceAbilityType)
 	local rayRadius = self.weapon_stats.rayRadius
 
 	local now = Workspace:GetServerTimeNow()
+
 	if not self:_isContinuousShot(now) then
-		self._recoilRestoreCFrame = Workspace.CurrentCamera.CFrame
+		self:_createRecoilStrike()
+		self.attackRow = 1
+	else
+		self.attackRow += 1
+		self:_scheduleRecoilReset()
 	end
 	self._lastShotTimestamp = now
-	self:_scheduleRecoilReset()
 
-	local selfAny = self :: any
-	selfAny:recoil()
+	self:recoil()
 
-	-- Track if player moved camera during recoil; update restore point accordingly
-	do
-		local camera = Workspace.CurrentCamera
-		if camera and self._recoilRestoreCFrame then
-			local saved = self._recoilRestoreCFrame
-			local current = camera.CFrame
-			local orientationDelta = getOrientationDelta(saved, current)
-			local deltaPitch = math.abs(orientationDelta.X)
-			local deltaYaw = math.abs(orientationDelta.Y)
-
-			local recoils = self.weapon_stats
-			local maxX = math.max(math.abs(recoils.recoilMin.X), math.abs(recoils.recoilMax.X))
-			local maxY = math.max(math.abs(recoils.recoilMin.Y), math.abs(recoils.recoilMax.Y))
-			local maxRecoilAngleRad = math.rad(math.max(maxX, maxY))
-
-			local playerRotatedCamera = deltaPitch > maxRecoilAngleRad or deltaYaw > maxRecoilAngleRad
-			if playerRotatedCamera then
-				-- player moved the camera beyond recoil, remember this new position as restore point
-				self._recoilRestoreCFrame = current
-			end
-		end
+	-- Update restore point if player moved camera during shot
+	if self._playerMoved then
+		self._recoilRestoreCFrame = self._lastPlayerCFrame
+		self._playerMoved = false
 	end
 
 	self.ammo -= 1

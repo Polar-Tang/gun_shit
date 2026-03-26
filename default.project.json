@@ -20,9 +20,7 @@
     "ServerScriptService": {
       "$path": "src/server"
     },
-    "StarterPack": {
-      "$path": "src/Tools"
-    },
+   
     "StarterPlayer": {
       "StarterPlayerScripts": {
         "$path": "src/client/UI"

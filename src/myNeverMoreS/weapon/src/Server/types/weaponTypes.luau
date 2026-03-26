@@ -278,15 +278,18 @@ export type AttackDistanceAbilityCLient = BaseAbility & {
 	attackId: string,
 	weaponBinder: any,
 	ammo: number,
+	_playerMoved: boolean,
+	_lastPlayerCFrame: CFrame,
 	_lastShotTimestamp: number,
 	_recoilRestoreCFrame: CFrame?,
 	_recoilTimeoutThreshold: number,
 	_recoilCooldownController: any,
 	_recoilResetConnection: RBXScriptConnection?,
+	attackRow: number,
+	-- Injected methods --
 	preAnimFx: ((self: AttackDistanceAbility, params: any?) -> ())?,
 	get_anim_name: ((self: AttackDistanceAbility) -> string)?,
 	post_anim: ((self: AttackDistanceAbility) -> ())?,
-
 	-- ===== Overridden / new methods =====
 	new: (constructor: AttackBaseAbilityConstructor) -> { self: AttackDistanceAbility },
 	SetAttributes: (self: AttackDistanceAbility) -> (),
@@ -300,6 +303,7 @@ export type AttackDistanceAbilityCLient = BaseAbility & {
 	_isContinuousShot: (self: AttackDistanceAbility, timestamp: number) -> boolean,
 	_scheduleRecoilReset: (self: AttackDistanceAbility) -> (),
 	_restoreRecoil: (self: AttackDistanceAbility) -> (),
+	_createRecoilStrike: (self: AttackDistanceAbility) -> (),
 
 	-- Override
 	Execute: (self: AttackDistanceAbility) -> (),
