@@ -20,16 +20,11 @@ local isServiceBagInitialized
 ---------------------------------
 
 --------------------------- Binders -----------------------------
-local RagdollServiceClient = serviceBag:GetService(Nevermore("RagdollServiceClient"))
-local Cooldown = serviceBag:GetService(Nevermore("CooldownClient"))
 
--- local BinderProvider = Nevermore("BinderProvider")
 local Binder = Nevermore("Binder")
-serviceBag:GetService(Nevermore("RagdollServiceClient"))
 local WeaponClient = Nevermore("WeaponClient") -- THIS IS NEW
-serviceBag:GetService(Nevermore("TimeSyncService"))
 local AnimationHandler = Nevermore("AnimationHandler")
-local CameraStackService = Nevermore("CameraStackService")
+
 local Binders = {
 	["AnimationHandler"] = AnimationHandler,
 	["Armed"] = WeaponClient,
@@ -42,15 +37,18 @@ local AttacksBinders = BinderProvider.new("Binders", function(self, serviceBag)
 		self:Add(Binder.new(tag, contructor), serviceBag, "test")
 	end
 end)
+
 serviceBag:GetService(AttacksBinders)
 --------------------------- END Binders -----------------------------
+------------------ Other services ------------------
+serviceBag:GetService(Nevermore("RagdollServiceClient"))
+serviceBag:GetService(Nevermore("TimeSyncService"))
+serviceBag:GetService(Nevermore("CooldownClient"))
+local CameraService = serviceBag:GetService(Nevermore("CameraStackService"))
 --------------------------- INIT -----------------------------
 
-local shiftLockControllerModule = require(script.Parent.shiftLockController)
-local shiftLockController = shiftLockControllerModule.new()
-shiftLockController:ToggleShiftLock(true)
-
 serviceBag:Init()
+
 local PlayerBrio = Nevermore("PlayerBrio")
 
 local BinderProviderInitialized = serviceBag:GetService(AttacksBinders)
@@ -87,9 +85,16 @@ serviceBag:Start()
 _G.PlayerBrio = PlayerBrio.new() -- use the same instance for everything
 _G.ServiceBag = serviceBag
 _G.BinderProvider = AttacksBinders
-_G.shiftLockController = shiftLockController
+_G.CameraService = CameraService
+
 isServiceBagInitialized = true
 ------------- ONCE INITIALIZED -------------
+
+do
+	local shiftLockControllerModule = require(script.Parent.cameraHandlers.shiftLockController)
+	local shiftLockController = shiftLockControllerModule.new()
+	shiftLockController:ToggleShiftLock(true)
+end
 
 -- Ensures Roact App start after intializing service bag
 require(script.Parent.AttckInvockerClient)

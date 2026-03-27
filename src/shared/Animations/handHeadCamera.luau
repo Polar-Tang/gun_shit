@@ -1,12 +1,16 @@
 -- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
 
 -- Motor6D references (adjust paths to your rig)
 local character = Players.LocalPlayer.Character or Players.LocalPlayer.CharacterAdded:Wait()
 -- local head = character:WaitForChild("Head")
 
-local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+local humanoid = character:WaitForChild("Humanoid")
+local rootPart = character:WaitForChild("HumanoidRootPart")
+
+local CHARACTER_ROTATION_SPEED = 14
 
 local torso = character:WaitForChild("Torso")
 -- local leftArm = character:WaitForChild("Left Arm") -- or UpperArm for R15
@@ -26,7 +30,7 @@ local LC1 = CFrame.new(0.5, 0.5, 0, 0, 0, -1, 0, 1, 0, 1, 0, 0)
 
 local Mouse = Players.LocalPlayer:GetMouse()
 
-RunService.RenderStepped:Connect(function(dt)
+RunService:BindToRenderStep("PlayerSpin", Enum.RenderPriority.Camera.Value + 78, function(delta)
 	local camera = workspace.CurrentCamera
 	if not camera then
 		return
@@ -37,10 +41,6 @@ RunService.RenderStepped:Connect(function(dt)
 	leftShoulder.C1 = LC1 * Kek
 
 	neck.C0 = neckC0Base * CFrame.Angles(math.asin(Mouse.Origin.lookVector.Y), 0, 0):inverse()
-	humanoidRootPart.CFrame = CFrame.lookAt(
-		humanoidRootPart.Position,
-		Vector3.new(Mouse.Hit.Position.X, humanoidRootPart.Position.Y, Mouse.Hit.Position.Z),
-		humanoidRootPart.CFrame.UpVector
-	)
 end)
+
 return {}

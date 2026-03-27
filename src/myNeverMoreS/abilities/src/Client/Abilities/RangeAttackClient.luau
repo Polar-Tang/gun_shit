@@ -1,6 +1,6 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
@@ -40,16 +40,53 @@ function AttackDistanceAbility.new(config: construnctor)
 	self.attackRow = 0
 
 	self._playerMoved = false
-	self._lastPlayerCFrame = nil
 
 	self._inputConnection = UserInputService.InputChanged:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseMovement then
 			self._playerMoved = true
-			self._lastPlayerCFrame = Workspace.CurrentCamera.CFrame
 		end
-		self._currentTween:Stop()
+
+		if self._restoreRecoilTween then
+			self._restoreRecoilTween:Disconnect()
+			self._restoreRecoilTween = nil
+			_G.CurrentCameraHandler:SetCframe(nil)
+		end
 	end)
 	self._maid:GiveTask(self._inputConnection)
+
+	local MOVEMENT_KEYS = {
+		-- WASD
+		[Enum.KeyCode.W] = true,
+		[Enum.KeyCode.A] = true,
+		[Enum.KeyCode.S] = true,
+		[Enum.KeyCode.D] = true,
+		-- Arrow keys
+		[Enum.KeyCode.Up] = true,
+		[Enum.KeyCode.Left] = true,
+		[Enum.KeyCode.Down] = true,
+		[Enum.KeyCode.Right] = true,
+		-- Gamepad left thumbstick
+		[Enum.KeyCode.Thumbstick1] = true,
+	}
+
+	self._maid:GiveTask(UserInputService.InputBegan:Connect(function(input: InputObject, gameProcessed: boolean)
+		if MOVEMENT_KEYS[input.KeyCode] then
+			if self._restoreRecoilTween then
+				self._restoreRecoilTween:Disconnect()
+				self._restoreRecoilTween = nil
+				_G.CurrentCameraHandler:SetCframe(nil)
+			end
+		end
+	end))
+	self._maid:GiveTask(UserInputService.InputEnded:Connect(function(a0: InputObject, a1: boolean)
+		if MOVEMENT_KEYS[a0.KeyCode] then
+			if self._restoreRecoilTween then
+				self._restoreRecoilTween:Disconnect()
+				self._restoreRecoilTween = nil
+				_G.CurrentCameraHandler:SetCframe(nil)
+			end
+		end
+	end))
 
 	self:_setupContinuousFireObservable()
 
@@ -104,21 +141,29 @@ function AttackDistanceAbility._isContinuousShot(self: AttackDistanceAbilityType
 end
 
 function AttackDistanceAbility._restoreRecoil(self: AttackDistanceAbilityType)
-	print("asd")
 	-- really need to find out a way for coexisting the tween cameras and the camera override
-	local camera = Workspace.CurrentCamera
-	if camera and self._recoilRestoreCFrame then
-		local tweenInfo = TweenInfo.new(
-			0.2, -- duration (tweak this)
-			Enum.EasingStyle.Linear,
-			Enum.EasingDirection.Out
-		)
 
-		local tween = TweenService:Create(camera, tweenInfo, {
-			CFrame = self._recoilRestoreCFrame,
-		})
-		self._currentTween = tween
-		tween:Play()
+	local cameraHandler = _G.CurrentCameraHandler
+	if cameraHandler and self._recoilRestoreCFrame then
+		local timer = 0
+		local rotateTime = 0.5
+		local currentCFrame = cameraHandler:GetCurrentCFrame()
+		cameraHandler:SetCframe(currentCFrame)
+
+		local targetCFrame = self._recoilRestoreCFrame
+		self._restoreRecoilTween = RunService.RenderStepped:Connect(function(dt: number)
+			timer += dt
+			local t = math.clamp(timer / rotateTime, 0, 1)
+
+			local lerpedCFrame = currentCFrame:Lerp(targetCFrame, t)
+			cameraHandler:SetCframe(lerpedCFrame)
+
+			if timer >= rotateTime and self._restoreRecoilTween then
+				self._restoreRecoilTween:Disconnect()
+				self._restoreRecoilTween = nil
+				cameraHandler:SetCframe(nil)
+			end
+		end)
 	end
 
 	self._recoilRestoreCFrame = nil
@@ -137,6 +182,7 @@ end
 function AttackDistanceAbility._createRecoilStrike(self: AttackDistanceAbilityType)
 	self._recoilCooldownController:init(self._cooldown + 0.15)
 	task.defer(function()
+		print("asd")
 		local c = self._recoilCooldownController:getCD()
 		if not c then
 			return
@@ -205,16 +251,15 @@ function AttackDistanceAbility._shot(self: AttackDistanceAbilityType)
 	self:recoil()
 
 	-- Update restore point if player moved camera during shot
+	local origin = _G.CurrentCameraHandler:GetCurrentCFrame()
 	if self._playerMoved then
-		self._recoilRestoreCFrame = self._lastPlayerCFrame
+		self._recoilRestoreCFrame = origin
 		self._playerMoved = false
 	end
 
 	self.ammo -= 1
 
 	-- self.guiController:setAmmo(self.ammo)
-
-	local origin = Workspace.CurrentCamera.CFrame
 
 	local rayDirections = getRayDirections(origin, raysPerShot, math.rad(spread), now)
 	for index, direction in rayDirections do
@@ -242,7 +287,7 @@ function AttackDistanceAbility._shot(self: AttackDistanceAbilityType)
 		{ timestamp = now, tagged = tagged, origin = origin }
 	)
 
-	drawRayResults(assert(self._tool.PrimaryPart, " tool must have a primary part").Position, rayResults)
+	drawRayResults(origin.Position, rayResults)
 end
 
 local random = Random.new()

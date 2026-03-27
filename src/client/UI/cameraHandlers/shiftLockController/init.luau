@@ -39,10 +39,10 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local RS = game:GetService("ReplicatedStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local _ = require(ReplicatedStorage.Animations.handHeadCamera)
 local Maid = require(ReplicatedStorage.Nevermore.Quenty.maid.Shared.Maid)
 local Spring = require(ReplicatedStorage.Nevermore.Quenty.spring.Shared.Spring)
 
-local _ = require(script.handHeadCamera)
 --// Instances
 local LocalPlayer = Players.LocalPlayer
 
@@ -192,6 +192,8 @@ function SmoothShiftLock:TransitionLockOffset(enable: boolean)
 	end
 end
 
+local lastCamera = CFrame.new()
+
 --// Toggle shift lock
 function SmoothShiftLock:ToggleShiftLock(enable: boolean)
 	assert(typeof(enable) == typeof(false), "Enable value is not a boolean.")
@@ -201,38 +203,41 @@ function SmoothShiftLock:ToggleShiftLock(enable: boolean)
 	self:SetMouseIcon(ENABLED)
 	self:TransitionLockOffset(ENABLED)
 
+	local cameraService = _G.CameraService
+	local cameraStack = cameraService:GetCameraStack()
+	local ThirdPerson = require(script.Parent.camerasStates.ThirdPerson)
+	local thirdPersonHandler = ThirdPerson.new(cameraStack, config)
+	_G.CurrentCameraHandler = thirdPersonHandler
 	--// Start
+	-- This should happen in a replicated storage to replicating it to all the other players
 	if ENABLED then
-		maid:GiveTask(RunService.RenderStepped:Connect(function(delta)
+		RunService:BindToRenderStep("PlayerSpin", Enum.RenderPriority.Camera.Value + 76, function(delta)
 			if self.Humanoid and self.RootPart then
 				self.Humanoid.AutoRotate = not ENABLED
 			end
 
 			--// Rotate character
-			if ENABLED and not self.Character:GetAttribute("Stunned") then
+			if ENABLED then
+				local camera = cameraService:GetRawDefaultCamera().CameraState.CFrame
+
 				if not self.Humanoid.Sit and config.CHARACTER_SMOOTH_ROTATION then
-					local _x, y, _z = self.Camera.CFrame:ToOrientation()
+					local _x, y, _z = camera:ToOrientation()
 					self.RootPart.CFrame = self.RootPart.CFrame:Lerp(
 						CFrame.new(self.RootPart.Position) * CFrame.Angles(0, y, 0),
 						delta * 5 * config.CHARACTER_ROTATION_SPEED
 					)
 				elseif not self.Humanoid.Sit then
-					local _x, y, _z = self.Camera.CFrame:ToOrientation()
+					local _x, y, _z = camera:ToOrientation()
 					self.RootPart.CFrame = CFrame.new(self.RootPart.Position) * CFrame.Angles(0, y, 0)
 				end
-
-				--// Apply over-the-shoulder offset
-				local offsetInWorld = self.Camera.CFrame:VectorToWorldSpace(config.CAMERA_OFFSET)
-				self.Camera.CFrame = self.Camera.CFrame + offsetInWorld
 			end
 
 			--// Stop
 			if not ENABLED then
 				maid:Destroy()
 			end
-		end))
+		end)
 	end
-
 	return self
 end
 
