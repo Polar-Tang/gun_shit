@@ -53,7 +53,6 @@ local PlayerBrio = Nevermore("PlayerBrio")
 
 local BinderProviderInitialized = serviceBag:GetService(AttacksBinders)
 local characterCtxUtils = require(ReplicatedStorage.Helpers.shared_services.characterCtxUtils)
-local CameraRecoiler = require(ReplicatedStorage.Nevermore.Custom.abilities.src.Client.utils.CameraRecoiler)
 local FadeText = require(ReplicatedStorage.utils.FadeText)
 
 local player = Players.LocalPlayer

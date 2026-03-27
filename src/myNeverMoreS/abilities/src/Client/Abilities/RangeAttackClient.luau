@@ -4,7 +4,6 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
-local CameraRecoiler = require(ReplicatedStorage.Nevermore.Custom.abilities.src.Client.utils.CameraRecoiler)
 local CooldownController = require(ReplicatedStorage.Nevermore.Custom.abilities.src.Server.Utils.CooldownController)
 local EffectTypes = require(ReplicatedStorage.Nevermore.Custom.abilities.src.Server.Utils.EffectTypes)
 local BaseAbility = require(ReplicatedStorage.Nevermore.Custom.abilities.src.Shared.Abilities.BaseAbility)
@@ -302,7 +301,10 @@ function AttackDistanceAbility.recoil(self: AttackDistanceAbilityType)
 
 	local recoil = Vector2.new(math.rad(-x), math.rad(y))
 
-	CameraRecoiler.recoil(recoil)
+	local cameraHandler = _G.CurrentCameraHandler
+	if cameraHandler and cameraHandler.recoil then
+		cameraHandler:recoil(recoil)
+	end
 end
 
 function AttackDistanceAbility.Execute(self: AttackDistanceAbilityType, params)

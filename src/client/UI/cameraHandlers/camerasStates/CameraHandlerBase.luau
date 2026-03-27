@@ -1,3 +1,5 @@
+local Workspace = game:GetService("Workspace")
+
 local CameraHandlerBase = {}
 CameraHandlerBase.__index = CameraHandlerBase
 
@@ -7,8 +9,12 @@ function CameraHandlerBase.new()
 	return self
 end
 
-function CameraHandlerBase:SetCframe(Cf: CFrame)
+function CameraHandlerBase:SetCframe(Cf: CFrame?)
 	self._cframe = Cf
+end
+
+function CameraHandlerBase:GetCurrentCFrame(): CFrame
+	return self._cframe or Workspace.CurrentCamera.CFrame
 end
 
 function CameraHandlerBase:Destroy()

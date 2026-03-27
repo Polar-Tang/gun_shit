@@ -27,6 +27,6 @@ function CameraRecoiler.recoil(recoilAmount: Vector2)
 end
 
 -- apply recoil after aim assist
-RunService:BindToRenderStep(Constants.RECOIL_BIND_NAME, Enum.RenderPriority.Camera.Value + 2, onRenderStepped)
+RunService:BindToRenderStep(Constants.RECOIL_BIND_NAME, Enum.RenderPriority.Camera.Value - 2, onRenderStepped)
 
 return CameraRecoiler
