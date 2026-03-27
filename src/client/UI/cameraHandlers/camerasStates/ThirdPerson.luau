@@ -27,20 +27,53 @@ function ThirdPersonCamera.new(cameraStackService, config)
 	self._zoom = 0
 	self._hasToRecoil = false
 
+	self._lerpTimer = 0
+	self._isLerping = false
+	self._timeToLerp = 0
+	self._goalLerp = CFrame.new()
+
 	RunService:BindToRenderStep("ThirdPersonShooter" .. self._key, Enum.RenderPriority.Camera.Value, function(delta)
 		local baseCFrame = Workspace.CurrentCamera.CFrame
 		local offset = baseCFrame:VectorToWorldSpace(self._config.CAMERA_OFFSET)
 
-		local desired = self._cframe or CFrame.new(baseCFrame.Position + offset) * (baseCFrame - baseCFrame.Position)
+		local desired = CFrame.new(baseCFrame.Position + offset) * (baseCFrame - baseCFrame.Position)
 
 		if self._hasToRecoil then
 			self:_recoiling(delta, desired)
+		elseif self._isLerping then
+			self._lerpTimer += delta
+			local t = math.clamp(self._lerpTimer / self._timeToLerp, 0, 1)
+
+			local goalRotation = self._goalLerp.Rotation
+			local updatedGoal = CFrame.new(baseCFrame.Position + offset) * goalRotation
+
+			self._cameraState.CFrame = desired:Lerp(updatedGoal, t)
+
+			--
+			self._cameraState.CFrame = desired:Lerp(updatedGoal, t)
+
+			if t >= self._timeToLerp then
+				self._lerpTimer = 0
+
+				self._isLerping = false
+			end
 		else
 			self._cameraState.CFrame = desired
 		end
 	end)
 
 	return self
+end
+
+function ThirdPersonCamera:LerpCamera(targetCFrame, timeToLerp)
+	self._goalLerp = targetCFrame
+	self._timeToLerp = timeToLerp
+	self._isLerping = true
+end
+
+function ThirdPersonCamera:StopLerpCamera(targetCFrame, timeToLerp)
+	self._lerpTimer = 0
+	self._isLerping = false
 end
 
 function ThirdPersonCamera:SetCframe(Cf: CFrame?)

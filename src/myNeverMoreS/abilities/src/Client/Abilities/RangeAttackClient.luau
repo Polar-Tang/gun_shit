@@ -45,11 +45,7 @@ function AttackDistanceAbility.new(config: construnctor)
 			self._playerMoved = true
 		end
 
-		if self._restoreRecoilTween then
-			self._restoreRecoilTween:Disconnect()
-			self._restoreRecoilTween = nil
-			_G.CurrentCameraHandler:SetCframe(nil)
-		end
+		_G.CurrentCameraHandler:StopLerpCamera()
 	end)
 	self._maid:GiveTask(self._inputConnection)
 
@@ -68,23 +64,11 @@ function AttackDistanceAbility.new(config: construnctor)
 		[Enum.KeyCode.Thumbstick1] = true,
 	}
 
-	self._maid:GiveTask(UserInputService.InputBegan:Connect(function(input: InputObject, gameProcessed: boolean)
-		if MOVEMENT_KEYS[input.KeyCode] then
-			if self._restoreRecoilTween then
-				self._restoreRecoilTween:Disconnect()
-				self._restoreRecoilTween = nil
-				_G.CurrentCameraHandler:SetCframe(nil)
-			end
-		end
-	end))
+	self._maid:GiveTask(UserInputService.InputBegan:Connect(function(input: InputObject, gameProcessed: boolean) end))
 	self._maid:GiveTask(UserInputService.InputEnded:Connect(function(a0: InputObject, a1: boolean)
-		if MOVEMENT_KEYS[a0.KeyCode] then
-			if self._restoreRecoilTween then
-				self._restoreRecoilTween:Disconnect()
-				self._restoreRecoilTween = nil
-				_G.CurrentCameraHandler:SetCframe(nil)
-			end
-		end
+		-- UserInputService:IsKeyDown(MOVEMENT_KEYS[a0.KeyCode])
+		-- TODO: if the player is moving, while m1 is pressed, it's released released and the recoil starts camera is moving at the same time the
+		--StopLerpCamera
 	end))
 
 	self:_setupContinuousFireObservable()
@@ -140,29 +124,15 @@ function AttackDistanceAbility._isContinuousShot(self: AttackDistanceAbilityType
 end
 
 function AttackDistanceAbility._restoreRecoil(self: AttackDistanceAbilityType)
-	-- really need to find out a way for coexisting the tween cameras and the camera override
-
 	local cameraHandler = _G.CurrentCameraHandler
 	if cameraHandler and self._recoilRestoreCFrame then
-		local timer = 0
-		local rotateTime = 0.5
+		local rotateTime = 0.3
 		local currentCFrame = cameraHandler:GetCurrentCFrame()
 		cameraHandler:SetCframe(currentCFrame)
 
 		local targetCFrame = self._recoilRestoreCFrame
-		self._restoreRecoilTween = RunService.RenderStepped:Connect(function(dt: number)
-			timer += dt
-			local t = math.clamp(timer / rotateTime, 0, 1)
 
-			local lerpedCFrame = currentCFrame:Lerp(targetCFrame, t)
-			cameraHandler:SetCframe(lerpedCFrame)
-
-			if timer >= rotateTime and self._restoreRecoilTween then
-				self._restoreRecoilTween:Disconnect()
-				self._restoreRecoilTween = nil
-				cameraHandler:SetCframe(nil)
-			end
-		end)
+		cameraHandler:LerpCamera(targetCFrame, rotateTime)
 	end
 
 	self._recoilRestoreCFrame = nil
@@ -181,7 +151,6 @@ end
 function AttackDistanceAbility._createRecoilStrike(self: AttackDistanceAbilityType)
 	self._recoilCooldownController:init(self._cooldown + 0.15)
 	task.defer(function()
-		print("asd")
 		local c = self._recoilCooldownController:getCD()
 		if not c then
 			return
@@ -237,8 +206,11 @@ function AttackDistanceAbility._shot(self: AttackDistanceAbilityType)
 	local rayRadius = self.weapon_stats.rayRadius
 
 	local now = Workspace:GetServerTimeNow()
+	local origin = _G.CurrentCameraHandler:GetCurrentCFrame()
 
 	if not self:_isContinuousShot(now) then
+		self._recoilRestoreCFrame = origin
+
 		self:_createRecoilStrike()
 		self.attackRow = 1
 	else
@@ -250,7 +222,6 @@ function AttackDistanceAbility._shot(self: AttackDistanceAbilityType)
 	self:recoil()
 
 	-- Update restore point if player moved camera during shot
-	local origin = _G.CurrentCameraHandler:GetCurrentCFrame()
 	if self._playerMoved then
 		self._recoilRestoreCFrame = origin
 		self._playerMoved = false
